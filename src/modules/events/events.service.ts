@@ -7,14 +7,14 @@ export class EventsService {
 
     // DB의 like_count 증가 로직 [cite: 21, 47]
     async incrementLike(photoId: string) {
-        return this.prisma.photo.update({
-            where: { id: photoId },
-            data: {
-                like_count: {
-                    increment: 1, // 원자적 업데이트
-                },
-            },
-        });
+    return this.prisma.photo.update({
+      where: { id: photoId },
+      data: {
+        like_count: {
+          increment: 1, // 원자적 업데이트
+        },
+      },
+    });
     }
 
     // 정렬 알고리즘 실행 및 1위 사진 조회 [cite: 19, 22]

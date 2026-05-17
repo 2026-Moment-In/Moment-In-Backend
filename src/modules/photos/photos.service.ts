@@ -12,6 +12,21 @@ export class PhotosService {
         private readonly eventsGateway: EventsGateway, // 이벤트를 발생시키기 위해 주입
     ) { }
 
+    async getPhotos(weddingId: string) {
+        return this.prisma.photo.findMany({
+            where: {
+                wedding_id: weddingId,
+                is_hidden: false,
+            },
+            orderBy: {
+                created_at: 'desc',
+            },
+            include: {
+                user: { select: { display_name: true } },
+            },
+        });
+    }
+
     async uploadAndSavePhoto(file: Express.Multer.File, data: CreatePhotoDto) {
         // 1. S3에 이미지 업로드 후 URL 받기
         const imageUrl = await this.s3Service.uploadFile(file);

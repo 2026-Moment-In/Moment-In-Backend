@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, UseInterceptors, UploadedFile, BadRequestException, Get, Param } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PhotosService } from './photos.service';
 import { CreatePhotoDto } from './dto/create-photo.dto';
@@ -6,6 +6,11 @@ import { CreatePhotoDto } from './dto/create-photo.dto';
 @Controller('photos')
 export class PhotosController {
     constructor(private readonly photosService: PhotosService) { }
+
+    @Get(':weddingId')
+    async findAll(@Param('weddingId') weddingId: string) {
+        return this.photosService.getPhotos(weddingId);
+    }
 
     @Post()
     @UseInterceptors(FileInterceptor('file')) // 프론트엔드에서 폼데이터 키를 'file'로 보내야 함

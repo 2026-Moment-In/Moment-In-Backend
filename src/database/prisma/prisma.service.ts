@@ -1,0 +1,163 @@
+import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+
+type Where = Record<string, unknown>;
+type Query = {
+  where?: Where;
+  data?: Record<string, any>;
+  include?: Record<string, any>;
+  select?: Record<string, boolean>;
+  orderBy?: Record<string, 'asc' | 'desc'>;
+};
+
+const demoUserId = '00000000-0000-0000-0000-000000000001';
+const demoWeddingId = '4JIQ56L';
+
+@Injectable()
+export class PrismaService {
+  private readonly users = [
+    {
+      id: demoUserId,
+      provider: 'demo',
+      social_id: 'demo-user',
+      display_name: '데모 하객',
+      created_at: new Date().toISOString(),
+    },
+  ];
+
+  private readonly weddings = [
+    {
+      id: demoWeddingId,
+      admin_id: demoUserId,
+      theme_code: 'classic',
+      wedding_date: '2026-06-20T12:00:00.000Z',
+      location_name: 'Moment Hall',
+      location_address: '서울특별시 강남구 테헤란로 123',
+      status: 'active',
+      created_at: new Date().toISOString(),
+    },
+  ];
+
+  private readonly photos = [
+    {
+      id: 'demo-photo-1',
+      wedding_id: demoWeddingId,
+      user_id: demoUserId,
+      image_url:
+        'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=900&q=80',
+      like_count: 3,
+      is_hidden: false,
+      created_at: new Date().toISOString(),
+    },
+  ];
+
+  private readonly guestbooks = [
+    {
+      id: 'demo-guestbook-1',
+      wedding_id: demoWeddingId,
+      user_id: demoUserId,
+      message: '결혼을 진심으로 축하합니다!',
+      is_hidden: false,
+      created_at: new Date().toISOString(),
+    },
+  ];
+
+  readonly user = this.createModel(this.users);
+  readonly wedding = this.createModel(this.weddings, { admin: this.users });
+  readonly photo = this.createModel(this.photos, { user: this.users });
+  readonly guestbook = this.createModel(this.guestbooks, { user: this.users });
+
+  private createModel(rows: any[], relations: Record<string, any[]> = {}) {
+    return {
+      findUnique: async (query: Query) => this.decorate(this.findFirst(rows, query.where), query, relations),
+      findFirst: async (query: Query) => {
+        const filtered = this.filterRows(rows, query.where);
+        const sorted = this.sortRows(filtered, query.orderBy);
+        return this.decorate(sorted[0] ?? null, query, relations);
+      },
+      findMany: async (query: Query = {}) => {
+        const filtered = this.filterRows(rows, query.where);
+        const sorted = this.sortRows(filtered, query.orderBy);
+        return sorted.map((row) => this.decorate(row, query, relations));
+      },
+      create: async (query: Query) => {
+        const row = {
+          id: query.data?.id ?? randomUUID(),
+          ...query.data,
+          like_count: query.data?.like_count ?? 0,
+          is_hidden: query.data?.is_hidden ?? false,
+          created_at: query.data?.created_at ?? new Date().toISOString(),
+        };
+        rows.push(row);
+        return this.decorate(row, query, relations);
+      },
+      update: async (query: Query) => {
+        const row = this.findFirst(rows, query.where);
+        if (!row) {
+          throw new Error('Record not found');
+        }
+
+        for (const [key, value] of Object.entries(query.data ?? {})) {
+          row[key] =
+            value && typeof value === 'object' && 'increment' in value
+              ? row[key] + value.increment
+              : value;
+        }
+
+        return this.decorate(row, query, relations);
+      },
+    };
+  }
+
+  private findFirst(rows: any[], where: Where = {}) {
+    return this.filterRows(rows, where)[0] ?? null;
+  }
+
+  private filterRows(rows: any[], where: Where = {}) {
+    return rows.filter((row) =>
+      Object.entries(where).every(([key, value]) => row[key] === value),
+    );
+  }
+
+  private sortRows(rows: any[], orderBy?: Query['orderBy']) {
+    if (!orderBy) return [...rows];
+
+    const [[key, direction]] = Object.entries(orderBy);
+    return [...rows].sort((a, b) => {
+      if (a[key] === b[key]) return 0;
+      const result = a[key] > b[key] ? 1 : -1;
+      return direction === 'desc' ? -result : result;
+    });
+  }
+
+  private decorate(row: any, query: Query = {}, relations: Record<string, any[]> = {}) {
+    if (!row) return null;
+
+    const decorated = { ...row };
+    if (query.include?.user && relations.user) {
+      decorated.user = this.applySelect(
+        relations.user.find((user) => user.id === row.user_id),
+        query.include.user.select,
+      );
+    }
+
+    if (query.include?.admin && relations.admin) {
+      decorated.admin = this.applySelect(
+        relations.admin.find((user) => user.id === row.admin_id),
+        query.include.admin.select,
+      );
+    }
+
+    return query.select ? this.applySelect(decorated, query.select) : decorated;
+  }
+
+  private applySelect(row: any, select?: Record<string, boolean>) {
+    if (!row || !select) return row ?? null;
+
+    return Object.fromEntries(
+      Object.entries(select)
+        .filter(([, shouldInclude]) => shouldInclude)
+        .map(([key]) => [key, row[key]]),
+    );
+  }
+}

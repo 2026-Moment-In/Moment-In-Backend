@@ -6,6 +6,7 @@ import { GuestbooksModule } from './modules/guestbooks/guestbooks.module';
 import { PhotosModule } from './modules/photos/photos.module';
 import { WeddingsModule } from './modules/weddings/weddings.module';
 import { PrismaModule } from './database/prisma/prisma.module';
+import { QrModule } from './modules/qr/qr.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { PrismaModule } from './database/prisma/prisma.module';
     GuestbooksModule,
     PhotosModule,
     WeddingsModule,
+    QrModule,
   ],
 })
 export class AppModule {}

@@ -3,7 +3,7 @@ import { PrismaService } from '../../database/prisma/prisma.service';
 import { CreatePhotoDto } from './dto/create-photo.dto';
 import { S3Service } from '../../shared/s3/s3.service'; // 경로 주의
 import { EventsGateway } from '../events/events.gateway'; // 라이브 스크린 송출용
-
+import 'multer';
 @Injectable()
 export class PhotosService {
     constructor(

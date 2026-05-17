@@ -2,6 +2,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid'; // 파일명 중복 방지용 (npm install uuid && npm install -D @types/uuid 필요할 수 있음)
 import * as path from 'path';
+import 'multer';
 
 @Injectable()
 export class S3Service {

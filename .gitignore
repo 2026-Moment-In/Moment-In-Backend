@@ -13,6 +13,9 @@ coverage/
 # generated files
 /src/generated/prisma/
 /node_modules/.prisma/
+prisma/dev.db
+prisma/dev.db-*
+public/uploads/
 
 # editor / OS
 .DS_Store

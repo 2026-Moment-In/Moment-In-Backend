@@ -1,7 +1,6 @@
 import { Controller, Post, Body, Get, Param } from '@nestjs/common';
 import { GuestbooksService } from './guestbooks.service';
 import { CreateGuestbookDto } from './dto/create-guestbook.dto';
-
 @Controller('guestbooks')
 export class GuestbooksController {
     constructor(private readonly guestbooksService: GuestbooksService) { }

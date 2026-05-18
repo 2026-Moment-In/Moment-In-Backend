@@ -1,77 +1,59 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
 }
 
-// 7.1 Users (Table) [cite: 27]
 model User {
-  id           String   @id @default(uuid()) // [cite: 28]
-  provider     String   // "kakao", "google" [cite: 30]
-  social_id    String   // [cite: 31]
-  display_name String   // [cite: 32]
-  created_at   DateTime @default(now()) // [cite: 33]
-
-  // 관계 설정 (Relation)
-  weddings     Wedding[]    @relation("AdminWeddings")
+  id           String       @id @default(uuid())
+  provider     String
+  social_id    String
+  display_name String
+  created_at   DateTime     @default(now())
+  weddings     Wedding[]
   photos       Photo[]
   guestbooks   Guestbook[]
 
-  @@map("users")
+  @@unique([provider, social_id])
 }
 
-// 7.2 Weddings (Table) [cite: 34]
 model Wedding {
-  id               String   @id @default(uuid()) // [cite: 36]
-  admin_id         String   // [cite: 37]
-  theme_code       String   // [cite: 38]
-  wedding_date     DateTime // [cite: 39]
-  location_name    String   // [cite: 39]
-  location_address String   // [cite: 40]
-  status           String   @default("active") // "active", "closed" [cite: 41]
-  created_at       DateTime @default(now()) // [cite: 41]
-
-  // 관계 설정 (Relation)
-  admin            User     @relation("AdminWeddings", fields: [admin_id], references: [id]) // [cite: 37]
+  id               String      @id @default(uuid())
+  admin_id         String
+  theme_code       String?     @unique
+  invitation_json  String?
+  wedding_date     DateTime?
+  wedding_time     String?
+  location_name    String?
+  location_address String?
+  status           String      @default("active")
+  created_at       DateTime    @default(now())
+  admin            User        @relation(fields: [admin_id], references: [id])
   photos           Photo[]
   guestbooks       Guestbook[]
-
-  @@map("weddings")
 }
 
-// 7.3 Photos (Table) [cite: 42]
 model Photo {
-  id         String   @id @default(uuid()) // [cite: 44]
-  wedding_id String   // [cite: 45]
-  user_id    String   // [cite: 45]
-  image_url  String   // [cite: 46]
-  like_count Int      @default(0) // [cite: 47]
-  is_hidden  Boolean  @default(false) // [cite: 48]
-  created_at DateTime @default(now()) // [cite: 49]
-
-  // 관계 설정 (Relation)
+  id         String   @id @default(uuid())
+  wedding_id String
+  user_id    String
+  image_url  String
+  like_count Int      @default(0)
+  is_hidden  Boolean  @default(false)
+  created_at DateTime @default(now())
   wedding    Wedding  @relation(fields: [wedding_id], references: [id])
   user       User     @relation(fields: [user_id], references: [id])
-
-  @@map("photos")
 }
 
-// 7.4 Guestbooks (Table) [cite: 50]
 model Guestbook {
-  id         String   @id @default(uuid()) // [cite: 51]
-  wedding_id String   // [cite: 52]
-  user_id    String   // [cite: 53]
-  message    String   // [cite: 54]
-  is_hidden  Boolean  @default(false) // [cite: 55]
-  created_at DateTime @default(now()) // [cite: 56]
-
-  // 관계 설정 (Relation)
+  id         String   @id @default(uuid())
+  wedding_id String
+  user_id    String
+  message    String
+  is_hidden  Boolean  @default(false)
+  created_at DateTime @default(now())
   wedding    Wedding  @relation(fields: [wedding_id], references: [id])
   user       User     @relation(fields: [user_id], references: [id])
-
-  @@map("guestbooks")
 }

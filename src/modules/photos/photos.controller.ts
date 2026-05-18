@@ -2,7 +2,7 @@ import { Controller, Post, Body, UseInterceptors, UploadedFile, BadRequestExcept
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PhotosService } from './photos.service';
 import { CreatePhotoDto } from './dto/create-photo.dto';
-
+import 'multer';
 @Controller('photos')
 export class PhotosController {
     constructor(private readonly photosService: PhotosService) { }

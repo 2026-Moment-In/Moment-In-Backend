@@ -2,10 +2,17 @@ import { Controller, Get, UseGuards, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { KakaoAuthGuard } from './guards/kakao-auth.guard';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  async me(@Req() req) {
+    return req.user;
+  }
 
   @Get('google')
   @UseGuards(GoogleAuthGuard)

@@ -1,5 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service';
+import { S3Service } from '../../shared/s3/s3.service';
+import { EventsGateway } from '../events/events.gateway';
 import { CreatePhotoDto } from './dto/create-photo.dto';
 import { S3Service } from '../../shared/s3/s3.service';
 import { EventsGateway } from '../events/events.gateway';

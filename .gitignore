@@ -1,6 +1,11 @@
 # dependencies
 node_modules/
 
+# prisma
+prisma/
+!src/database/prisma/
+!src/database/prisma/**
+
 # build output
 dist/
 coverage/
@@ -15,6 +20,8 @@ coverage/
 /node_modules/.prisma/
 prisma/dev.db
 prisma/dev.db-*
+
+# uploads
 public/uploads/
 
 # editor / OS

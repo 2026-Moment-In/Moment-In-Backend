@@ -29,10 +29,12 @@ model Wedding {
   location_name    String?
   location_address String?
   status           String      @default("active")
+  view_count       Int         @default(0)
   created_at       DateTime    @default(now())
   admin            User        @relation(fields: [admin_id], references: [id])
   photos           Photo[]
   guestbooks       Guestbook[]
+  rsvps            Rsvp[]
 }
 
 model Photo {
@@ -56,4 +58,17 @@ model Guestbook {
   created_at DateTime @default(now())
   wedding    Wedding  @relation(fields: [wedding_id], references: [id])
   user       User     @relation(fields: [user_id], references: [id])
+}
+
+model Rsvp {
+  id              String   @id @default(uuid())
+  wedding_id      String
+  user_id         String?
+  name            String
+  attendance      String
+  guest_count     Int      @default(1)
+  meal_preference String?
+  message         String?
+  created_at      DateTime @default(now())
+  wedding         Wedding  @relation(fields: [wedding_id], references: [id])
 }

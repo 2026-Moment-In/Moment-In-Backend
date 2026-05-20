@@ -14,4 +14,9 @@ export class EventsController {
   async getTopRankedPhoto(@Param('weddingId') weddingId: string) {
     return this.eventsService.getTopRankedPhoto(weddingId);
   }
+
+  @Get('ranking/:weddingId/top')
+  async getRanking(@Param('weddingId') weddingId: string) {
+    return this.eventsService.getRanking(weddingId);
+  }
 }

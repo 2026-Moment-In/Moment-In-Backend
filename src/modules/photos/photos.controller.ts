@@ -1,11 +1,35 @@
-import { Controller, Post, Body, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import {
+    Controller,
+    Post,
+    Body,
+    UseInterceptors,
+    UploadedFile,
+    BadRequestException,
+    Get,
+    Param,
+    Patch,
+    Req,
+    UseGuards,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PhotosService } from './photos.service';
 import { CreatePhotoDto } from './dto/create-photo.dto';
-
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import 'multer';
 @Controller('photos')
 export class PhotosController {
     constructor(private readonly photosService: PhotosService) { }
+
+    @Get('admin/:weddingId')
+    @UseGuards(JwtAuthGuard)
+    async findAllForAdmin(@Req() req, @Param('weddingId') weddingId: string) {
+        return this.photosService.getAdminPhotos(req.user.id, weddingId);
+    }
+
+    @Get(':weddingId')
+    async findAll(@Param('weddingId') weddingId: string) {
+        return this.photosService.getPhotos(weddingId);
+    }
 
     @Post()
     @UseInterceptors(FileInterceptor('file')) // 프론트엔드에서 폼데이터 키를 'file'로 보내야 함
@@ -23,5 +47,17 @@ export class PhotosController {
         }
 
         return this.photosService.uploadAndSavePhoto(file, createPhotoDto);
+    }
+
+    @Patch(':photoId/hide')
+    @UseGuards(JwtAuthGuard)
+    async hidePhoto(@Req() req, @Param('photoId') photoId: string) {
+        return this.photosService.setPhotoHidden(req.user.id, photoId, true);
+    }
+
+    @Patch(':photoId/show')
+    @UseGuards(JwtAuthGuard)
+    async showPhoto(@Req() req, @Param('photoId') photoId: string) {
+        return this.photosService.setPhotoHidden(req.user.id, photoId, false);
     }
 }

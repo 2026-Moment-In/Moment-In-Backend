@@ -1,18 +1,19 @@
 import { Injectable } from '@nestjs/common';
-const store = new Map<string, string>();
+import { WeddingsService } from '../weddings/weddings.service';
 
 @Injectable()
 export class QrService {
-// qr.service.ts
-create(data: any) {
-  const code = Math.random().toString(36).slice(2, 9).toUpperCase();
-  // 일단 메모리에 저장
-  store.set(code, JSON.stringify(data));
-  return { code };
-}
+  constructor(private readonly weddingsService: WeddingsService) {}
 
-// 조회
-findOne(code: string) {
-  return { data: store.get(code) || "데이터가 존재하지 않습니다."};
-}
+  async create(data: unknown) {
+    const result = await this.weddingsService.createWeddingFromInvitation(data);
+    return {
+      code: result.code,
+      weddingId: result.wedding.id,
+    };
+  }
+
+  async findOne(code: string) {
+    return this.weddingsService.getInvitationByCode(code);
+  }
 }

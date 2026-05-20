@@ -10,12 +10,7 @@ export class GuestbooksService {
 
   private async ensureUser(userId = this.demoUserId) {
     return this.prisma.user.upsert({
-      where: {
-        provider_social_id: {
-          provider: 'local',
-          social_id: userId,
-        },
-      },
+      where: { id: userId },
       create: {
         id: userId,
         provider: 'local',
@@ -66,29 +61,18 @@ export class GuestbooksService {
       select: { admin_id: true },
     });
 
-    if (!wedding) {
-      throw new NotFoundException('Wedding not found');
-    }
-
-    if (wedding.admin_id !== adminId) {
-      throw new ForbiddenException('You can only manage your own wedding');
-    }
+    if (!wedding) throw new NotFoundException('Wedding not found');
+    if (wedding.admin_id !== adminId) throw new ForbiddenException('You can only manage your own wedding');
   }
 
   async getAdminGuestbooks(adminId: string, weddingId: string) {
     await this.ensureWeddingOwner(adminId, weddingId);
 
     return this.prisma.guestbook.findMany({
-      where: {
-        wedding_id: weddingId,
-      },
-      orderBy: {
-        created_at: 'desc',
-      },
+      where: { wedding_id: weddingId },
+      orderBy: { created_at: 'desc' },
       include: {
-        user: {
-          select: { display_name: true },
-        },
+        user: { select: { display_name: true } },
       },
     });
   }
@@ -101,21 +85,14 @@ export class GuestbooksService {
       },
     });
 
-    if (!guestbook) {
-      throw new NotFoundException('Guestbook not found');
-    }
-
-    if (guestbook.wedding.admin_id !== adminId) {
-      throw new ForbiddenException('You can only manage your own guestbooks');
-    }
+    if (!guestbook) throw new NotFoundException('Guestbook not found');
+    if (guestbook.wedding.admin_id !== adminId) throw new ForbiddenException('You can only manage your own guestbooks');
 
     return this.prisma.guestbook.update({
       where: { id: guestbookId },
       data: { is_hidden: isHidden },
       include: {
-        user: {
-          select: { display_name: true },
-        },
+        user: { select: { display_name: true } },
       },
     });
   }

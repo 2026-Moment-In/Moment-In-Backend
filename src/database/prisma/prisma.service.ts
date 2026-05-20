@@ -7,7 +7,8 @@ type Query = {
   data?: Record<string, any>;
   include?: Record<string, any>;
   select?: Record<string, boolean>;
-  orderBy?: Record<string, 'asc' | 'desc'>;
+  orderBy?: Record<string, 'asc' | 'desc'> | Record<string, 'asc' | 'desc'>[];
+  take?: number;
 };
 
 const demoUserId = '00000000-0000-0000-0000-000000000001';
@@ -69,17 +70,22 @@ export class PrismaService {
 
   private createModel(rows: any[], relations: Record<string, any[]> = {}) {
     return {
-      findUnique: async (query: Query) => this.decorate(this.findFirst(rows, query.where), query, relations),
+      findUnique: async (query: Query) =>
+        this.decorate(this.findFirst(rows, query.where), query, relations),
+
       findFirst: async (query: Query) => {
         const filtered = this.filterRows(rows, query.where);
         const sorted = this.sortRows(filtered, query.orderBy);
         return this.decorate(sorted[0] ?? null, query, relations);
       },
+
       findMany: async (query: Query = {}) => {
         const filtered = this.filterRows(rows, query.where);
         const sorted = this.sortRows(filtered, query.orderBy);
-        return sorted.map((row) => this.decorate(row, query, relations));
+        const sliced = query.take ? sorted.slice(0, query.take) : sorted;
+        return sliced.map((row) => this.decorate(row, query, relations));
       },
+
       create: async (query: Query) => {
         const row = {
           id: query.data?.id ?? randomUUID(),
@@ -91,11 +97,10 @@ export class PrismaService {
         rows.push(row);
         return this.decorate(row, query, relations);
       },
+
       update: async (query: Query) => {
         const row = this.findFirst(rows, query.where);
-        if (!row) {
-          throw new Error('Record not found');
-        }
+        if (!row) throw new Error('Record not found');
 
         for (const [key, value] of Object.entries(query.data ?? {})) {
           row[key] =
@@ -103,8 +108,32 @@ export class PrismaService {
               ? row[key] + value.increment
               : value;
         }
-
         return this.decorate(row, query, relations);
+      },
+
+      // upsert: where 조건으로 찾아서 있으면 update, 없으면 create
+      upsert: async (query: {
+        where?: Where;
+        create?: Record<string, any>;
+        update?: Record<string, any>;
+        include?: Record<string, any>;
+        select?: Record<string, boolean>;
+      }) => {
+        const existing = this.findFirst(rows, query.where);
+        if (existing) {
+          for (const [key, value] of Object.entries(query.update ?? {})) {
+            existing[key] = value;
+          }
+          return this.decorate(existing, query, relations);
+        } else {
+          const row = {
+            id: randomUUID(),
+            ...query.create,
+            created_at: new Date().toISOString(),
+          };
+          rows.push(row);
+          return this.decorate(row, query, relations);
+        }
       },
     };
   }
@@ -115,22 +144,43 @@ export class PrismaService {
 
   private filterRows(rows: any[], where: Where = {}) {
     return rows.filter((row) =>
-      Object.entries(where).every(([key, value]) => row[key] === value),
+      Object.entries(where).every(([key, value]) => {
+        // 중첩 객체 (e.g. provider_social_id: { provider, social_id }) 처리
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+          return Object.entries(value as Record<string, unknown>).every(
+            ([subKey, subVal]) => row[subKey] === subVal,
+          );
+        }
+        return row[key] === value;
+      }),
     );
   }
 
-  private sortRows(rows: any[], orderBy?: Query['orderBy']) {
+  private sortRows(
+    rows: any[],
+    orderBy?: Query['orderBy'],
+  ) {
     if (!orderBy) return [...rows];
 
-    const [[key, direction]] = Object.entries(orderBy);
+    // 배열 형태 (다중 정렬) 지원
+    const orders = Array.isArray(orderBy) ? orderBy : [orderBy];
+
     return [...rows].sort((a, b) => {
-      if (a[key] === b[key]) return 0;
-      const result = a[key] > b[key] ? 1 : -1;
-      return direction === 'desc' ? -result : result;
+      for (const order of orders) {
+        const [[key, direction]] = Object.entries(order);
+        if (a[key] === b[key]) continue;
+        const result = a[key] > b[key] ? 1 : -1;
+        return direction === 'desc' ? -result : result;
+      }
+      return 0;
     });
   }
 
-  private decorate(row: any, query: Query = {}, relations: Record<string, any[]> = {}) {
+  private decorate(
+    row: any,
+    query: Query = {},
+    relations: Record<string, any[]> = {},
+  ) {
     if (!row) return null;
 
     const decorated = { ...row };
@@ -140,7 +190,6 @@ export class PrismaService {
         query.include.user.select,
       );
     }
-
     if (query.include?.admin && relations.admin) {
       decorated.admin = this.applySelect(
         relations.admin.find((user) => user.id === row.admin_id),
@@ -153,7 +202,6 @@ export class PrismaService {
 
   private applySelect(row: any, select?: Record<string, boolean>) {
     if (!row || !select) return row ?? null;
-
     return Object.fromEntries(
       Object.entries(select)
         .filter(([, shouldInclude]) => shouldInclude)

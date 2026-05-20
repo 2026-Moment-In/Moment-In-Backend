@@ -40,7 +40,7 @@ export class EventsService {
         wedding_id: weddingId,
         is_hidden: false,
       },
-      orderBy: [{ like_count: 'desc' }, { created_at: 'asc' }],
+      orderBy: { like_count: 'desc' },
       take,
       include: {
         user: { select: { display_name: true } },

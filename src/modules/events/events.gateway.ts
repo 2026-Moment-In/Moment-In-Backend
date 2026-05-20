@@ -41,6 +41,14 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return { event: 'joined', data: { weddingId } };
     }
 
+    @SubscribeMessage('join-wedding')
+    handleJoinWeddingKebab(
+        @ConnectedSocket() client: Socket,
+        @MessageBody('weddingId') weddingId: string,
+    ) {
+        return this.handleJoinWedding(client, weddingId);
+    }
+
     // 2. 좋아요 클릭 이벤트 처리 및 랭킹 갱신 
     @SubscribeMessage('likePhoto')
     async handleLikePhoto(
@@ -59,10 +67,20 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
             likeCount: updatedPhoto.like_count,
             topRankedPhotoId: topRankingPhotoId, // 1위에게 왕관 부여를 위한 데이터 [cite: 19, 21]
         });
+        this.server.to(payload.weddingId).emit('like-updated', {
+            photoId: updatedPhoto.id,
+            likeCount: updatedPhoto.like_count,
+            topRankedPhotoId: topRankingPhotoId,
+        });
     }
 
     // (REST API용) 사진 업로드 완료 시, 컨트롤러에서 이 메서드를 호출하여 라이브 스크린에 즉시 반영 
     broadcastNewPhoto(weddingId: string, photoData: any) {
         this.server.to(weddingId).emit('newPhoto', photoData);
+        this.server.to(weddingId).emit('photo-uploaded', photoData);
+    }
+
+    broadcastPhotoHidden(weddingId: string, photoId: string) {
+        this.server.to(weddingId).emit('photo-hidden', { photoId });
     }
 }

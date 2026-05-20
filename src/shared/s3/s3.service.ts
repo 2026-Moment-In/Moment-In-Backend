@@ -1,6 +1,8 @@
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
+import { promises as fs } from 'fs';
 import * as path from 'path';
 import 'multer';
 
@@ -19,13 +21,29 @@ export class S3Service {
     });
   }
 
-  async uploadFile(file: Express.Multer.File): Promise<string> {
-    if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
-      return `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
-    }
+  private hasAwsCredentials() {
+    return Boolean(
+      process.env.AWS_ACCESS_KEY_ID &&
+        process.env.AWS_SECRET_ACCESS_KEY &&
+        process.env.AWS_S3_BUCKET_NAME,
+    );
+  }
 
+  private async saveLocalFile(file: Express.Multer.File, fileName: string) {
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+    await fs.mkdir(uploadDir, { recursive: true });
+    await fs.writeFile(path.join(uploadDir, fileName), file.buffer);
+
+    return `http://localhost:${process.env.PORT ?? 3000}/uploads/${fileName}`;
+  }
+
+  async uploadFile(file: Express.Multer.File): Promise<string> {
     const ext = path.extname(file.originalname);
     const fileName = `${uuidv4()}${ext}`;
+
+    if (!this.hasAwsCredentials()) {
+      return this.saveLocalFile(file, fileName);
+    }
 
     try {
       const command = new PutObjectCommand({
@@ -40,7 +58,7 @@ export class S3Service {
       return `https://${this.bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
     } catch (error) {
       console.error('S3 Upload Error:', error);
-      throw new InternalServerErrorException('이미지 업로드에 실패했습니다.');
+      throw new InternalServerErrorException('Image upload failed.');
     }
   }
 }

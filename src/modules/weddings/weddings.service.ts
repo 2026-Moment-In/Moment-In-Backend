@@ -48,13 +48,25 @@ export class WeddingsService {
     }
   }
 
+  private getString(...values: unknown[]) {
+    for (const value of values) {
+      if (typeof value === 'string' && value.trim()) {
+        return value;
+      }
+    }
+
+    return undefined;
+  }
+
   private toWeddingData(data: SaveInvitationDto | any) {
+    const couple = data?.couple ?? {};
+
     return {
       invitation_json: JSON.stringify(data ?? {}),
-      wedding_date: this.parseDate(data?.weddingDate),
-      wedding_time: typeof data?.weddingTime === 'string' ? data.weddingTime : undefined,
-      location_name: typeof data?.venueName === 'string' ? data.venueName : undefined,
-      location_address: typeof data?.venueAddress === 'string' ? data.venueAddress : undefined,
+      wedding_date: this.parseDate(this.getString(data?.weddingDate, couple?.weddingDate)),
+      wedding_time: this.getString(data?.weddingTime, couple?.weddingTime),
+      location_name: this.getString(data?.venueName, couple?.venue),
+      location_address: this.getString(data?.venueAddress, couple?.venueAddress),
     };
   }
 
@@ -93,6 +105,33 @@ export class WeddingsService {
     return { code, wedding };
   }
 
+  async createLegacyWeddingForCode(code: string) {
+    const admin = await this.ensureDemoUser();
+    const data: SaveInvitationDto = {
+      greetingTitle: '소중한 분들을 초대합니다',
+      greetingBody: '두 사람의 새로운 시작을 함께 축복해 주세요.',
+      groomName: '신랑',
+      brideName: '신부',
+      weddingDate: '2026-06-20',
+      weddingTime: '12:00',
+      venueName: '예식장',
+      venueAddress: '주소를 준비 중입니다',
+    };
+
+    const wedding = await this.prisma.wedding.create({
+      data: {
+        admin_id: admin.id,
+        theme_code: code,
+        ...this.toWeddingData(data),
+      },
+      include: {
+        admin: { select: { display_name: true } },
+      },
+    });
+
+    return wedding;
+  }
+
   async getMyWeddings(adminId: string) {
     return this.prisma.wedding.findMany({
       where: {
@@ -104,7 +143,7 @@ export class WeddingsService {
       },
       include: {
         admin: { select: { display_name: true } },
-        _count: { select: { photos: true, guestbooks: true } },
+        _count: { select: { photos: true, guestbooks: true, rsvps: true } },
       },
     });
   }
@@ -114,7 +153,7 @@ export class WeddingsService {
       where: { id },
       include: {
         admin: { select: { display_name: true } },
-        _count: { select: { photos: true, guestbooks: true } },
+        _count: { select: { photos: true, guestbooks: true, rsvps: true } },
       },
     });
 
@@ -181,10 +220,15 @@ export class WeddingsService {
   }
 
   async getInvitationByCode(code: string) {
-    const wedding = await this.getWeddingByCode(code);
+    let wedding = await this.getWeddingByCode(code);
 
     if (!wedding) {
-      throw new NotFoundException('Wedding not found');
+      const normalizedCode = code.trim().toUpperCase();
+      if (/^WEDDING[A-Z0-9]{4,12}$/.test(normalizedCode)) {
+        wedding = await this.createLegacyWeddingForCode(normalizedCode);
+      } else {
+        throw new NotFoundException('Wedding not found');
+      }
     }
 
     return {
@@ -192,5 +236,25 @@ export class WeddingsService {
       wedding,
       data: this.parseInvitation(wedding),
     };
+  }
+
+  async incrementViewCountByCode(code: string) {
+    const wedding = await this.getWeddingByCode(code);
+
+    if (!wedding) {
+      throw new NotFoundException('Wedding not found');
+    }
+
+    return this.prisma.wedding.update({
+      where: { id: wedding.id },
+      data: {
+        view_count: {
+          increment: 1,
+        },
+      },
+      include: {
+        admin: { select: { display_name: true } },
+      },
+    });
   }
 }

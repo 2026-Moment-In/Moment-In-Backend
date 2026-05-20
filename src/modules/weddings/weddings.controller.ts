@@ -37,6 +37,11 @@ export class WeddingsController {
     return this.weddingsService.deleteMyWedding(req.user.id, id);
   }
 
+  @Post('code/:code/view')
+  async incrementViewCount(@Param('code') code: string) {
+    return this.weddingsService.incrementViewCountByCode(code);
+  }
+
   @Get('code/:code')
   async getWeddingByCode(@Param('code') code: string) {
     return this.weddingsService.getWeddingByCode(code);

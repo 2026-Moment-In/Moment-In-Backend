@@ -4,9 +4,10 @@ import { AuthModule } from './modules/auth/auth.module';
 import { EventsModule } from './modules/events/events.module';
 import { GuestbooksModule } from './modules/guestbooks/guestbooks.module';
 import { PhotosModule } from './modules/photos/photos.module';
+import { QrModule } from './modules/qr/qr.module';
+import { RsvpsModule } from './modules/rsvps/rsvps.module';
 import { WeddingsModule } from './modules/weddings/weddings.module';
 import { PrismaModule } from './database/prisma/prisma.module';
-import { QrModule } from './modules/qr/qr.module';
 
 @Module({
   imports: [
@@ -20,8 +21,8 @@ import { QrModule } from './modules/qr/qr.module';
     GuestbooksModule,
     PhotosModule,
     QrModule,
+    RsvpsModule,
     WeddingsModule,
-    QrModule,
   ],
 })
 export class AppModule {}

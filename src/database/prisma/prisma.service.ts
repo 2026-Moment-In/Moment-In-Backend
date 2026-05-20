@@ -63,10 +63,25 @@ export class PrismaService {
     },
   ];
 
+  private readonly rsvps = [
+    {
+      id: 'demo-rsvp-1',
+      wedding_id: demoWeddingId,
+      user_id: demoUserId,
+      name: 'Demo Guest',
+      attendance: 'yes',
+      guest_count: 1,
+      meal_preference: null,
+      message: null,
+      created_at: new Date().toISOString(),
+    },
+  ];
+
   readonly user = this.createModel(this.users);
   readonly wedding = this.createModel(this.weddings, { admin: this.users });
   readonly photo = this.createModel(this.photos, { user: this.users });
   readonly guestbook = this.createModel(this.guestbooks, { user: this.users });
+  readonly rsvp = this.createModel(this.rsvps, { wedding: this.weddings });
 
   private createModel(rows: any[], relations: Record<string, any[]> = {}) {
     return {
@@ -112,6 +127,15 @@ export class PrismaService {
       },
 
       // upsert: where 조건으로 찾아서 있으면 update, 없으면 create
+      delete: async (query: Query) => {
+        const row = this.findFirst(rows, query.where);
+        const index = rows.findIndex((item) => item === row);
+        if (index < 0) throw new Error('Record not found');
+
+        rows.splice(index, 1);
+        return this.decorate(row, query, relations);
+      },
+
       upsert: async (query: {
         where?: Where;
         create?: Record<string, any>;
@@ -194,6 +218,12 @@ export class PrismaService {
       decorated.admin = this.applySelect(
         relations.admin.find((user) => user.id === row.admin_id),
         query.include.admin.select,
+      );
+    }
+    if (query.include?.wedding && relations.wedding) {
+      decorated.wedding = this.applySelect(
+        relations.wedding.find((wedding) => wedding.id === row.wedding_id),
+        query.include.wedding.select,
       );
     }
 

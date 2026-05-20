@@ -14,6 +14,12 @@ export class AuthController {
     return req.user;
   }
 
+  @Get('dev')
+  async devLogin() {
+    const user = await this.authService.validateUser('local', 'dev-user', 'Dev User');
+    return this.authService.login(user);
+  }
+
   @Get('google')
   @UseGuards(GoogleAuthGuard)
   async googleAuth() {

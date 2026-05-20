@@ -33,4 +33,18 @@ export class EventsService {
 
     return topPhoto ? topPhoto.id : null;
   }
+
+  async getRanking(weddingId: string, take = 10) {
+    return this.prisma.photo.findMany({
+      where: {
+        wedding_id: weddingId,
+        is_hidden: false,
+      },
+      orderBy: [{ like_count: 'desc' }, { created_at: 'asc' }],
+      take,
+      include: {
+        user: { select: { display_name: true } },
+      },
+    });
+  }
 }

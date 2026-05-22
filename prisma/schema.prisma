@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String       @id @default(uuid())
+  provider     String
+  social_id    String
+  display_name String
+  created_at   DateTime     @default(now())
+  weddings     Wedding[]
+  photos       Photo[]
+  guestbooks   Guestbook[]
+
+  @@unique([provider, social_id])
+}
+
+model Wedding {
+  id               String      @id @default(uuid())
+  admin_id         String
+  theme_code       String?     @unique
+  invitation_json  String?
+  wedding_date     DateTime?
+  wedding_time     String?
+  location_name    String?
+  location_address String?
+  status           String      @default("active")
+  view_count       Int         @default(0)
+  created_at       DateTime    @default(now())
+  admin            User        @relation(fields: [admin_id], references: [id])
+  photos           Photo[]
+  guestbooks       Guestbook[]
+  rsvps            Rsvp[]
+}
+
+model Photo {
+  id         String   @id @default(uuid())
+  wedding_id String
+  user_id    String
+  image_url  String
+  like_count Int      @default(0)
+  is_hidden  Boolean  @default(false)
+  created_at DateTime @default(now())
+  wedding    Wedding  @relation(fields: [wedding_id], references: [id])
+  user       User     @relation(fields: [user_id], references: [id])
+}
+
+model Guestbook {
+  id         String   @id @default(uuid())
+  wedding_id String
+  user_id    String
+  message    String
+  is_hidden  Boolean  @default(false)
+  created_at DateTime @default(now())
+  wedding    Wedding  @relation(fields: [wedding_id], references: [id])
+  user       User     @relation(fields: [user_id], references: [id])
+}
+
+model Rsvp {
+  id              String   @id @default(uuid())
+  wedding_id      String
+  user_id         String?
+  name            String
+  attendance      String
+  guest_count     Int      @default(1)
+  meal_preference String?
+  message         String?
+  created_at      DateTime @default(now())
+  wedding         Wedding  @relation(fields: [wedding_id], references: [id])
+}

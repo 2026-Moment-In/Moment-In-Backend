@@ -1,12 +1,24 @@
-import { Controller, Get, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, UseGuards, Req, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { KakaoAuthGuard } from './guards/kakao-auth.guard';
-import { Res } from '@nestjs/common';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  async me(@Req() req) {
+    return req.user;
+  }
+
+  @Get('dev')
+  async devLogin() {
+    const user = await this.authService.validateUser('local', 'dev-user', 'Dev User');
+    return this.authService.login(user);
+  }
 
   @Get('google')
   @UseGuards(GoogleAuthGuard)
@@ -34,8 +46,8 @@ export class AuthController {
       
       const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
       
-      res.redirect(`${FRONTEND_URL}/login/callback?token=${result.access_token}`);
-    } catch (error : any) {
+      res.redirect(`${FRONTEND_URL}/create?token=${result.access_token}`);
+    } catch (error: any) {
       console.error("카카오 로그인 리다이렉트 실패:", error);
       res.status(500).json({ message: "Internal Server Error", error: error.message });
     }

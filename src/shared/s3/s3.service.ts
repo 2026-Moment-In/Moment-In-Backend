@@ -23,8 +23,8 @@ export class S3Service {
   private hasAwsCredentials() {
     return Boolean(
       process.env.AWS_ACCESS_KEY_ID &&
-        process.env.AWS_SECRET_ACCESS_KEY &&
-        process.env.AWS_S3_BUCKET_NAME,
+      process.env.AWS_SECRET_ACCESS_KEY &&
+      process.env.AWS_S3_BUCKET_NAME,
     );
   }
 
@@ -33,7 +33,8 @@ export class S3Service {
     await fs.mkdir(uploadDir, { recursive: true });
     await fs.writeFile(path.join(uploadDir, fileName), file.buffer);
 
-    return `http://localhost:${process.env.PORT ?? 3000}/uploads/${fileName}`;
+    const baseUrl = process.env.BACKEND_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
+    return `${baseUrl}/uploads/${fileName}`;
   }
 
   async uploadFile(file: Express.Multer.File): Promise<string> {

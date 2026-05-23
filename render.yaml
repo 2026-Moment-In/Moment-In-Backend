@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: Moment-In-Backend
+    env: node
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm run start:prod

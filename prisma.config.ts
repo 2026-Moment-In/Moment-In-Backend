@@ -1,3 +1,4 @@
+declare const process: { env: Record<string, string | undefined> };
 import "dotenv/config";
 import { defineConfig } from "@prisma/config";
 

@@ -8,7 +8,9 @@ export class GuestbooksController {
 
     // POST /guestbooks
     @Post()
-    async create(@Body() createGuestbookDto: CreateGuestbookDto) {
+    @UseGuards(JwtAuthGuard)
+    async create(@Body() createGuestbookDto: CreateGuestbookDto, @Req() req) {
+        createGuestbookDto.userId = req.user.id;
         return this.guestbooksService.createGuestbook(createGuestbookDto);
     }
 

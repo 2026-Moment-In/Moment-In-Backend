@@ -72,13 +72,12 @@ export class PhotosService {
   }
 
   async uploadAndSavePhoto(file: Express.Multer.File, data: CreatePhotoDto) {
-    const user = await this.ensureUser(data.userId, data.displayName);
     const imageUrl = await this.s3Service.uploadFile(file);
 
     const savedPhoto = await this.prisma.photo.create({
       data: {
         wedding_id: data.weddingId,
-        user_id: user.id,
+        user_id: data.userId,
         image_url: imageUrl,
       },
       include: {

@@ -22,12 +22,10 @@ export class GuestbooksService {
   }
 
   async createGuestbook(data: CreateGuestbookDto) {
-    const user = await this.ensureUser(data.userId);
-
     return this.prisma.guestbook.create({
       data: {
         wedding_id: data.weddingId,
-        user_id: user.id,
+        user_id: data.userId,
         message: data.message,
       },
       include: {

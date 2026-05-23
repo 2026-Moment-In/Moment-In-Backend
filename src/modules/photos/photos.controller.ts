@@ -12,10 +12,10 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { CreatePhotoDto } from './dto/create-photo.dto';
 import { PhotosService } from './photos.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import 'multer';
 
 @Controller('photos')
 export class PhotosController {
@@ -33,9 +33,11 @@ export class PhotosController {
   }
 
   @Post()
-  @UseInterceptors(FileInterceptor('file'))
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
   async uploadPhoto(
     @UploadedFile() file: Express.Multer.File,
+    @Req() req,
     @Body() createPhotoDto: CreatePhotoDto,
   ) {
     if (!file) {
@@ -44,7 +46,7 @@ export class PhotosController {
     if (!file.mimetype.match(/\/(jpg|jpeg|png|webp)$/)) {
       throw new BadRequestException('지원하지 않는 이미지 형식입니다.');
     }
-    return this.photosService.uploadAndSavePhoto(file, createPhotoDto);
+    return this.photosService.uploadAndSavePhoto(file, { ...createPhotoDto, userId: req.user.id });
   }
 
   @Patch(':photoId/hide')

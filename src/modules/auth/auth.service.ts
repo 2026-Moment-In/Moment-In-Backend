@@ -10,21 +10,18 @@ export class AuthService {
   ) {}
 
   async validateUser(provider: string, socialId: string, displayName: string) {
-    // 사용자 조회 또는 생성
     let user = await this.prisma.user.findFirst({
-      where: {
-        provider,
-        social_id: socialId,
-      },
+      where: { provider, social_id: socialId },
     });
 
     if (!user) {
       user = await this.prisma.user.create({
-        data: {
-          provider,
-          social_id: socialId,
-          display_name: displayName,
-        },
+        data: { provider, social_id: socialId, display_name: displayName },
+      });
+    } else if (displayName && user.display_name !== displayName) {
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: { display_name: displayName },
       });
     }
 

@@ -9,7 +9,7 @@
     "target": "ES2021",
     "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": "./src", 
+    "rootDir": "./src",
     "paths": {
       "@/*": ["./src/*"]
     },
@@ -20,5 +20,10 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "prisma.config.ts"
+  ]
 }

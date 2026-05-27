@@ -8,6 +8,7 @@ import { QrModule } from './modules/qr/qr.module';
 import { RsvpsModule } from './modules/rsvps/rsvps.module';
 import { WeddingsModule } from './modules/weddings/weddings.module';
 import { PrismaModule } from './database/prisma/prisma.module';
+import { NearbyFacilitiesModule } from './modules/nearby-facilities/nearby-facilities.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { PrismaModule } from './database/prisma/prisma.module';
     QrModule,
     RsvpsModule,
     WeddingsModule,
+    NearbyFacilitiesModule,
   ],
 })
 export class AppModule {}

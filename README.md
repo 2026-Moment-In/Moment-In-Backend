@@ -42,6 +42,9 @@ GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_CALLBACK_URL=http://localhost:3000/auth/google/callback
 
+NAVER_CLIENT_ID=
+NAVER_CLIENT_SECRET=
+
 AWS_REGION=ap-northeast-2
 AWS_S3_BUCKET_NAME=
 AWS_ACCESS_KEY_ID=
@@ -102,4 +105,5 @@ npm run start:prod # run built app
 - Do not commit `.env`.
 - `.env.example` should stay committed because it documents required environment variables.
 - If AWS keys are empty, uploaded images are saved locally under `public/uploads`.
+- `POST /nearby-facilities/recommend` uses Naver Local Search and Image Search, so `NAVER_CLIENT_ID` and `NAVER_CLIENT_SECRET` are required.
 - `GET /auth/dev` exists for local development when Kakao/Google login is unavailable.

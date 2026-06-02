@@ -45,7 +45,8 @@ export class NearbyFacilitiesService {
 
     const venueName = this.cleanText(data.venueName);
     const venueAddress = this.cleanText(data.venueAddress);
-    const baseQuery = this.cleanText([venueAddress, venueName].filter(Boolean).join(' '));
+    const baseQueries = this.buildBaseQueries(venueAddress, venueName);
+    const baseQuery = baseQueries[0];
 
     if (!baseQuery) {
       throw new BadRequestException('venueAddress or venueName is required');
@@ -56,7 +57,7 @@ export class NearbyFacilitiesService {
     const resultsByGroup = await Promise.all(
       groups.map(async (group) => ({
         group,
-        items: await this.searchLocal(`${baseQuery} ${group.keyword}`, clientId, clientSecret),
+        items: await this.searchLocalWithFallback(baseQueries, group.keyword, clientId, clientSecret),
       })),
     );
 
@@ -119,6 +120,32 @@ export class NearbyFacilitiesService {
     }
 
     return this.defaultGroups;
+  }
+
+  private buildBaseQueries(venueAddress: string, venueName: string) {
+    const candidates = [
+      [venueAddress, venueName].filter(Boolean).join(' '),
+      venueAddress,
+      venueName,
+    ];
+
+    return [...new Set(candidates.map((query) => this.cleanText(query)).filter(Boolean))];
+  }
+
+  private async searchLocalWithFallback(
+    baseQueries: string[],
+    keyword: string,
+    clientId: string,
+    clientSecret: string,
+  ) {
+    for (const baseQuery of baseQueries) {
+      const items = await this.searchLocal(`${baseQuery} ${keyword}`, clientId, clientSecret);
+      if (items.length > 0) {
+        return items;
+      }
+    }
+
+    return [];
   }
 
   private async searchLocal(query: string, clientId: string, clientSecret: string) {

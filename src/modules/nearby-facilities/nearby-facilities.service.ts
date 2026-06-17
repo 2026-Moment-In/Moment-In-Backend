@@ -54,12 +54,13 @@ export class NearbyFacilitiesService {
 
     const count = this.clamp(Number(data.count) || 6, 1, 20);
     const groups = this.buildGroups(data);
-    const resultsByGroup = await Promise.all(
-      groups.map(async (group) => ({
+    const resultsByGroup: { group: FacilityGroup; items: NaverLocalItem[] }[] = [];
+    for (const group of groups) {
+      resultsByGroup.push({
         group,
-        items: await this.searchLocalWithFallback(baseQueries, group.keyword, clientId, clientSecret),
-      })),
-    );
+        items: await this.searchLocalWithFallback(venueAddress, venueName, group.keyword, clientId, clientSecret),
+      });
+    }
 
     const picked = this.pickRoundRobin(resultsByGroup, count);
     const facilities = await Promise.all(
@@ -133,20 +134,56 @@ export class NearbyFacilitiesService {
   }
 
   private async searchLocalWithFallback(
-    baseQueries: string[],
+    venueAddress: string,
+    venueName: string,
     keyword: string,
     clientId: string,
     clientSecret: string,
   ) {
-    for (const baseQuery of baseQueries) {
-      const items = (await this.searchLocal(`${baseQuery} ${keyword}`, clientId, clientSecret))
-        .filter((item) => this.isActualPlace(item, baseQuery, keyword));
+    for (const query of this.buildLocalSearchQueries(venueAddress, venueName, keyword)) {
+      const addressParts = this.extractAddressParts(venueAddress);
+      const items = (await this.searchLocalSafe(query, clientId, clientSecret))
+        .filter((item) => this.isActualPlace(item, query, keyword))
+        .filter((item) => this.isNearVenueArea(item, addressParts));
       if (items.length > 0) {
         return items;
       }
     }
 
     return [];
+  }
+
+  private async searchLocalSafe(query: string, clientId: string, clientSecret: string) {
+    try {
+      return await this.searchLocal(query, clientId, clientSecret);
+    } catch {
+      return [];
+    }
+  }
+
+  private buildLocalSearchQueries(venueAddress: string, venueName: string, keyword: string) {
+    const parts = this.extractAddressParts(venueAddress);
+    const candidates = [
+      venueName ? `${venueName} ${keyword}` : '',
+      parts.district && parts.neighborhood ? `${parts.district} ${parts.neighborhood} ${keyword}` : '',
+      parts.city && parts.district && parts.neighborhood ? `${parts.city} ${parts.district} ${parts.neighborhood} ${keyword}` : '',
+      parts.neighborhood ? `${parts.neighborhood} ${keyword}` : '',
+      parts.roadName ? `${parts.district} ${parts.roadName} ${keyword}` : '',
+      parts.district ? `${parts.district} ${keyword}` : '',
+      venueAddress ? `${venueAddress} ${keyword}` : '',
+    ];
+
+    return [...new Set(candidates.map((query) => this.cleanText(query)).filter(Boolean))];
+  }
+
+  private extractAddressParts(address: string) {
+    const tokens = this.cleanText(address).split(' ').filter(Boolean);
+    const city = tokens.find((token) => /(시|도)$/.test(token)) ?? tokens[0] ?? '';
+    const district = tokens.find((token) => /(구|군)$/.test(token)) ?? '';
+    const neighborhood = tokens.find((token) => /(동|읍|면|가)$/.test(token)) ?? '';
+    const roadName = tokens.find((token) => /(로|길)(\d|$)/.test(token)) ?? '';
+
+    return { city, district, neighborhood, roadName };
   }
 
   private async searchLocal(query: string, clientId: string, clientSecret: string) {
@@ -253,6 +290,19 @@ export class NearbyFacilitiesService {
     }
 
     if (/주변\s*(음식점|카페|편의점|공원|맛집|주차장|포토스팟|문화시설|관광명소|숙박)$/.test(title)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private isNearVenueArea(item: NaverLocalItem, venueArea: ReturnType<typeof this.extractAddressParts>) {
+    const placeAddress = this.cleanText([item.roadAddress, item.address].filter(Boolean).join(' '));
+    if (!placeAddress) {
+      return true;
+    }
+
+    if (venueArea.district && !placeAddress.includes(venueArea.district)) {
       return false;
     }
 

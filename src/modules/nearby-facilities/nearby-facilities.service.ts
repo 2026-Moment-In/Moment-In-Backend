@@ -139,7 +139,8 @@ export class NearbyFacilitiesService {
     clientSecret: string,
   ) {
     for (const baseQuery of baseQueries) {
-      const items = await this.searchLocal(`${baseQuery} ${keyword}`, clientId, clientSecret);
+      const items = (await this.searchLocal(`${baseQuery} ${keyword}`, clientId, clientSecret))
+        .filter((item) => this.isActualPlace(item, baseQuery, keyword));
       if (items.length > 0) {
         return items;
       }
@@ -234,6 +235,28 @@ export class NearbyFacilitiesService {
 
   private createNaverMapUrl(placeName: string, address?: string) {
     return `https://map.naver.com/v5/search/${encodeURIComponent([placeName, address].filter(Boolean).join(' '))}`;
+  }
+
+  private isActualPlace(item: NaverLocalItem, baseQuery: string, keyword: string) {
+    const title = this.stripHtml(item.title);
+    if (!title) {
+      return false;
+    }
+
+    const syntheticTitles = [
+      `${baseQuery} 주변 ${keyword}`,
+      `${baseQuery} ${keyword}`,
+    ].map((value) => this.cleanText(value));
+
+    if (syntheticTitles.includes(title)) {
+      return false;
+    }
+
+    if (/주변\s*(음식점|카페|편의점|공원|맛집|주차장|포토스팟|문화시설|관광명소|숙박)$/.test(title)) {
+      return false;
+    }
+
+    return true;
   }
 
   private stripHtml(value?: string) {

@@ -1,5 +1,5 @@
 import { Controller, Get, UseGuards, Req, Res } from '@nestjs/common';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { KakaoAuthGuard } from './guards/kakao-auth.guard';
@@ -42,8 +42,13 @@ export class AuthController {
   @Get('kakao/callback')
   @UseGuards(KakaoAuthGuard)
   async kakaoAuthRedirect(@Req() req, @Res() res: Response) {
-    const result = await this.authService.login(req.user);
-    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5173';
-    return res.redirect(`${frontendUrl}/auth/callback?token=${result.access_token}`);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+    if (!req.user) {
+      return res.redirect(`${frontendUrl}/login?error=kakao_login_failed`);
+    }
+
+    const { access_token } = await this.authService.login(req.user);
+    return res.redirect(`${frontendUrl}/auth/callback?token=${encodeURIComponent(access_token)}`);
   }
 }

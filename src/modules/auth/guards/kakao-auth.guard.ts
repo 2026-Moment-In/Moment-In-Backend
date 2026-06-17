@@ -10,4 +10,12 @@ export class KakaoAuthGuard extends AuthGuard('kakao') {
         prompt: request.query.prompt,
     };
   }
+
+  handleRequest(err: any, user: any) {
+    if (err || !user) {
+      return null;
+    }
+
+    return user;
+  }
 }
